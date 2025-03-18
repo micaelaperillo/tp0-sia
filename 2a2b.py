@@ -96,16 +96,16 @@ def analyze_hp_and_capture(factory, pokeballs, pokemon_name):
     plt.legend()
     plt.savefig(f"./graphs/hp_capture_{pokemon_name}.png")
 
-
-
 def main():
     with open('pokemon.json', "r") as c:
-        pokemon_names = json.load(c)   
+        pokemon_names = json.load(c).keys()   
+
+    with open('pokeball.json', "r") as c:
+        pokeballs = json.load(c).keys()
     
     factory = PokemonFactory("pokemon.json")
-    pokeballs = ["pokeball", "ultraball", "fastball", "heavyball"]
 
-    for pokemon in pokemon_names.keys():
+    for pokemon in pokemon_names:
         analyze_health_and_capture(factory, pokeballs, pokemon)
         analyze_hp_and_capture(factory, pokeballs, pokemon)
 
