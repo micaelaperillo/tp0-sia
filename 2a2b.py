@@ -49,12 +49,12 @@ def analyze_health_and_capture(factory, pokeballs, pokemon_name):
         plt.plot(pokeball_df["status"], pokeball_df["mean"], color=colors[pokeball], label=pokeball, marker='o')
         plt.errorbar(pokeball_df["status"], pokeball_df["mean"], pokeball_df["std_dev"], fmt='none', color=colors[pokeball], capsize=3)
 
-    plt.title(f"Mean vs Status for {pokemon_name}")
+    plt.title(f"Accuracy of catch vs Status for {pokemon_name}")
     plt.xlabel("Status")
-    plt.ylabel("Mean")
+    plt.ylabel("Accuracy (mean)")
     plt.grid(True)
     plt.legend()
-    plt.show()
+    plt.savefig(f"./graphs/health_capture_{pokemon_name}.png")
 
 # 2b)
 def analyze_hp_and_capture(factory, pokeballs, pokemon_name):
@@ -89,12 +89,12 @@ def analyze_hp_and_capture(factory, pokeballs, pokemon_name):
         plt.plot(pokeball_df["hp"], pokeball_df["mean"], color=colors[pokeball], label=pokeball, marker='o')
         plt.errorbar(pokeball_df["hp"], pokeball_df["mean"], pokeball_df["std_dev"], fmt='none', color=colors[pokeball], capsize=3)
 
-    plt.title(f"Mean vs Health Percentage (HP) for {pokemon_name}")
+    plt.title(f"Accuracy of catch vs Health Percentage (HP) for {pokemon_name}")
     plt.xlabel("HP %")
-    plt.ylabel("Mean")
+    plt.ylabel("Accuracy (Mean)")
     plt.grid(True)
     plt.legend()
-    plt.show()
+    plt.savefig(f"./graphs/hp_capture_{pokemon_name}.png")
 
 
 
