@@ -15,23 +15,42 @@ colors = {
     "heavyball": 'y',
 }
 
-def analyze_effectiveness(factory,pokemon_name, status_list, hp_min, hp_max, pokeballs):
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+
+def analyze_effectiveness(factory, pokemon_name, status_list, hp_min, hp_max, pokeballs):
+
+    hp_values = np.linspace(hp_min, hp_max, 5)
 
     for status in status_list:
         fig, ax = plt.subplots(figsize=(10, 6))
+        
         for ball in pokeballs:
-            prob = []
-            levels = []
+            levels = [1] + list(range(10, 101, 5))
+            mean_probs = []
+            std_devs = []
 
-            for level in [1] + list(range(10, 101, 5)):
-                pokemon = factory.create(pokemon_name, level, status, hp_min + hp_max / 2) # Como tengo el rango de %HP, tomo el valor medio del intervalo #
-                success, catch_prob = attempt_catch(pokemon, ball)
-                prob.append(catch_prob)
-                levels.append(level)
+            for level in levels:
+                catch_probs = []
 
-            ax.plot(levels, prob, color=colors[ball], label=ball, marker='o')
+                for hp in hp_values:
+                    pokemon = factory.create(pokemon_name, level, status, hp)  
+                    success, catch_prob = attempt_catch(pokemon, ball)
+                    catch_probs.append(catch_prob)
 
-        ax.set_title(f"Probabilidad de captura de {pokemon_name}  ({status.name})")
+                mean_prob = np.mean(catch_probs)  # Promedio de las probabilidades
+                std_dev = np.std(catch_probs)  # Desviación estándar
+
+                mean_probs.append(mean_prob)
+                std_devs.append(std_dev)
+                print(f"Nivel {level} - {ball}: std_dev = {std_dev}")
+
+
+            # Graficar con barras de error
+            ax.errorbar(levels, mean_probs, yerr=np.array(std_devs), fmt='-o', color=colors[ball], label=ball, capsize=5)
+
+        ax.set_title(f"Probabilidad de captura de {pokemon_name} ({status.name})")
         ax.set_xlabel("Nivel")
         ax.set_ylabel("Probabilidad de captura")
         ax.grid(True)
@@ -39,16 +58,18 @@ def analyze_effectiveness(factory,pokemon_name, status_list, hp_min, hp_max, pok
 
         output_dir = "graphs"
         os.makedirs(output_dir, exist_ok=True)
-
         output_path = os.path.join(output_dir, f"effectiveness_{pokemon_name}_{status.name}.png")
         fig.savefig(output_path, bbox_inches="tight")
-        plt.close(fig)  
+        plt.show()
+        plt.close(fig)
+  
 
 
 def main():
 
     factory = PokemonFactory("pokemon.json")
 
+# Recibe como argumento el archivo de configuración
     with open(f"{sys.argv[1]}", "r") as f:
         config = json.load(f)
 
