@@ -25,7 +25,7 @@ def analyze_effectiveness(factory, pokemon_name, status_list, hp_min, hp_max, po
 
     for status in status_list:
         fig, ax = plt.subplots(figsize=(10, 6))
-        
+
         for ball in pokeballs:
             levels = [1] + list(range(10, 101, 5))
             mean_probs = []
@@ -39,16 +39,16 @@ def analyze_effectiveness(factory, pokemon_name, status_list, hp_min, hp_max, po
                     success, catch_prob = attempt_catch(pokemon, ball)
                     catch_probs.append(catch_prob)
 
-                mean_prob = np.mean(catch_probs)  # Promedio de las probabilidades
-                std_dev = np.std(catch_probs)  # Desviación estándar
+                mean_prob = np.mean(catch_probs) 
+                std_dev = np.std(catch_probs)  
 
                 mean_probs.append(mean_prob)
                 std_devs.append(std_dev)
-                print(f"Nivel {level} - {ball}: std_dev = {std_dev}")
 
+            std_dev_promedio = np.mean(std_devs)
+            print(f"\n🔹 Desvío estándar promedio para {ball} ({status.name}): {std_dev_promedio}\n")
 
-            # Graficar con barras de error
-            ax.errorbar(levels, mean_probs, yerr=np.array(std_devs), fmt='-o', color=colors[ball], label=ball, capsize=5)
+            ax.errorbar(levels, mean_probs, yerr=np.array(std_devs), fmt='-o', label=ball, capsize=5)
 
         ax.set_title(f"Probabilidad de captura de {pokemon_name} ({status.name})")
         ax.set_xlabel("Nivel")
@@ -60,7 +60,6 @@ def analyze_effectiveness(factory, pokemon_name, status_list, hp_min, hp_max, po
         os.makedirs(output_dir, exist_ok=True)
         output_path = os.path.join(output_dir, f"effectiveness_{pokemon_name}_{status.name}.png")
         fig.savefig(output_path, bbox_inches="tight")
-        plt.show()
         plt.close(fig)
   
 
