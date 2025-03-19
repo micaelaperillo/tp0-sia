@@ -6,6 +6,8 @@ import numpy as np
 from .pokeball import BasePokeball, FastBall, HeavyBall, PokeBall, UltraBall
 from .pokemon import Pokemon
 
+random.seed(42)
+
 _POKEBALL = {
     "pokeball": lambda x: PokeBall(x),
     "ultraball": lambda x: UltraBall(x),
