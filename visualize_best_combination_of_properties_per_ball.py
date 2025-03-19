@@ -125,8 +125,8 @@ def create_bar_plot_for_pokemon_prices(output_directory):
         plt.text(bar.get_x() + bar.get_width()/2, height + 0.1,
                  f'{height:.1f}', ha='center', va='bottom')
 
-    plt.title('Precios relativos de pokeballs especiales respecto de la pokeball básica')
-    plt.ylabel('Cantidad de pokeballs equivalentes')
+    plt.title('Relación de precio de pokeballs especiales respecto de la pokeball básica')
+    plt.ylabel('Cantidad de pokeballs básicas equivalentes')
     plt.grid(axis='y', linestyle='--', alpha=0.7)
     plt.tight_layout()
 
@@ -348,55 +348,57 @@ def create_efficiency_heatmaps(df1, df2, pokemon1, pokemon2, output_dir):
 def create_std_dev_heatmaps(df1, df2, pokemon1, pokemon2, output_dir):
     def create_std_dev_heatmap(df, pokemon_name, output_dir, num_hp_groups=19, cmap="YlGrBu"):
         os.makedirs(output_dir, exist_ok=True)
-
+ 
         pokeball_colors = {
             "pokeball": "red",
             "ultraball": "yellow",
             "fastball": "green",
             "heavyball": "blue"
         }
-
+ 
         status_names = ["none", "burn", "freeze", "poison", "paralysis", "sleep"]
-
+ 
         filtered_df = df[(df['Level'] >= 1) & (df['Level'] <= 100)]
-
+ 
         if filtered_df.empty:
             print(f"No data available for {pokemon_name} at levels 1-50")
             return
-
+ 
         filtered_df = filtered_df.copy()
-
+ 
         hp_groups = group_hp_by_capture_rate(filtered_df, num_hp_groups)
         filtered_df['HP_Group'] = filtered_df['HP'].map(hp_groups)
-
+ 
         hp_group_labels = sorted(set(hp_groups.values()), 
                                 key=lambda x: float(x.split('-')[0]) if '-' in x else float(x))
-
+ 
         std_dev_data = []
-
+ 
         for pokeball in pokeball_colors.keys():
             for status in status_names:
                 for hp_group in hp_group_labels:
                     combo_df = filtered_df[(filtered_df['HP_Group'] == hp_group) & 
                                           (filtered_df['Status'] == status) &
                                           (filtered_df['Pokeball'] == pokeball)]
-
+ 
                     if not combo_df.empty and len(combo_df) > 1:  # Need at least 2 points for std dev
+                        mean = combo_df['CaptureRate'].mean()
                         std_dev = combo_df['CaptureRate'].std()
-
+ 
                         std_dev_data.append({
                             'Pokeball': pokeball,
                             'Status': status,
                             'HP_Group': hp_group,
-                            'StdDev': std_dev
+                            'StdDev': std_dev,
+                            'Mean' : mean
                         })
-
+ 
         std_dev_df = pd.DataFrame(std_dev_data)
-
+ 
         # Create separate heatmaps for each pokeball type
         for pokeball in pokeball_colors.keys():
             pokeball_data = std_dev_df[std_dev_df['Pokeball'] == pokeball]
-
+ 
             if pokeball_data.empty:
                 print(f"No data available for {pokeball}")
                 continue
@@ -407,15 +409,15 @@ def create_std_dev_heatmaps(df1, df2, pokemon1, pokemon2, output_dir):
                 values='StdDev',
                 aggfunc='first'
             )
-
+ 
             std_dev_pivot = std_dev_pivot.reindex(status_names)
             std_dev_pivot = std_dev_pivot.reindex(columns=hp_group_labels)
-
+ 
             plt.figure(figsize=(14, 8))
-
+ 
             # Create a mask for missing values
             mask = pd.isna(std_dev_pivot)
-
+ 
             ax = sns.heatmap(
                 std_dev_pivot,
                 cmap=cmap,
@@ -427,22 +429,284 @@ def create_std_dev_heatmaps(df1, df2, pokemon1, pokemon2, output_dir):
                 linewidths=1,
                 linecolor='white',
             )
-
+ 
             plt.xticks(rotation=45, ha='right')
-
+ 
             plt.title(f'Desviación estándar de la precisión de captura para {pokemon_name}\n  {pokeball.capitalize()} - Niveles: 1-100', fontsize=16)
             plt.xlabel('HP %', fontsize=14)
             plt.ylabel('Estado', fontsize=14)
-
+ 
             plt.tight_layout()
-
+ 
             filename = f"{output_dir}/{pokemon_name.lower()}_{pokeball}_std_dev_heatmap.png"
             plt.savefig(filename, dpi=300, bbox_inches='tight')
             plt.close()
-
+ 
     create_std_dev_heatmap(df1, pokemon1, output_dir, 19, "YlGnBu")
     create_std_dev_heatmap(df2, pokemon2, output_dir, 19, "YlOrBr")
 
+def create_mean_std_dev_heatmaps(df1, df2, pokemon1, pokemon2, output_dir, first_level=1, last_level=100):
+    # Function to create and return both the heatmap and the calculated data
+    def create_std_dev_heatmap(df, pokemon_name, output_dir, num_hp_groups=19, cmap="YlGrBu"):
+        os.makedirs(output_dir, exist_ok=True)
+        pokeball_colors = {
+            "pokeball": "red",
+            "ultraball": "yellow",
+            "fastball": "green",
+            "heavyball": "blue"
+        }
+        status_names = ["none", "burn", "freeze", "poison", "paralysis", "sleep"]
+        
+        filtered_df = df[(df['Level'] >= first_level) & (df['Level'] <= last_level)]
+        if filtered_df.empty:
+            print(f"No data available for {pokemon_name} at levels 1-50")
+            return None
+        
+        filtered_df = filtered_df.copy()
+        hp_groups = group_hp_by_capture_rate(filtered_df, num_hp_groups)
+        filtered_df['HP_Group'] = filtered_df['HP'].map(hp_groups)
+        hp_group_labels = sorted(set(hp_groups.values()), key=lambda x: float(x.split('-')[0]) if '-' in x else float(x))
+        
+        std_dev_data = []
+        for pokeball in pokeball_colors.keys():
+            for status in status_names:
+                for hp_group in hp_group_labels:
+                    combo_df = filtered_df[(filtered_df['HP_Group'] == hp_group) & 
+                                         (filtered_df['Status'] == status) & 
+                                         (filtered_df['Pokeball'] == pokeball)]
+                    if not combo_df.empty and len(combo_df) > 1:  # Need at least 2 points for std dev
+                        mean = combo_df['CaptureRate'].mean()
+                        std_dev = combo_df['CaptureRate'].std()
+                        std_dev_data.append({
+                            'Pokeball': pokeball,
+                            'Status': status,
+                            'HP_Group': hp_group,
+                            'StdDev': std_dev,
+                            'Mean': mean
+                        })
+        
+        std_dev_df = pd.DataFrame(std_dev_data)
+        
+        # Create separate heatmaps for each pokeball type
+        for pokeball in pokeball_colors.keys():
+            pokeball_data = std_dev_df[std_dev_df['Pokeball'] == pokeball]
+            if pokeball_data.empty:
+                print(f"No data available for {pokeball}")
+                continue
+                
+            mean_pivot = pokeball_data.pivot_table(
+                index='Status', 
+                columns='HP_Group', 
+                values='Mean', 
+                aggfunc='first'
+            )
+            mean_pivot = mean_pivot.reindex(status_names)
+            mean_pivot = mean_pivot.reindex(columns=hp_group_labels)
+            
+            std_dev_pivot = pokeball_data.pivot_table(
+                index='Status', 
+                columns='HP_Group', 
+                values='StdDev', 
+                aggfunc='first'
+            )
+            std_dev_pivot = std_dev_pivot.reindex(status_names)
+            std_dev_pivot = std_dev_pivot.reindex(columns=hp_group_labels)
+            
+            # Combine mean and std dev in the format "mean\n±\nstd_dev"
+            combined_pivot = pd.DataFrame(index=mean_pivot.index, columns=mean_pivot.columns)
+            for idx in mean_pivot.index:
+                for col in mean_pivot.columns:
+                    if not pd.isna(mean_pivot.loc[idx, col]) and not pd.isna(std_dev_pivot.loc[idx, col]):
+                        combined_pivot.loc[idx, col] = f"{mean_pivot.loc[idx, col]:.4f}\n±\n{std_dev_pivot.loc[idx, col]:.4f}"
+            
+            plt.figure(figsize=(18, 10))  
+            
+            mask = combined_pivot.isna()
+            
+            def annotate_heatmap(data, color_data, **kws):
+                yd, xd = np.meshgrid(np.arange(data.shape[0]) + 0.5, np.arange(data.shape[1]) + 0.5)
+                for y, x, val, color_val in zip(xd.flatten(), yd.flatten(), data.values.flatten(), color_data.values.flatten()):
+                    if not pd.isna(val):
+                        kws['color'] = 'white' if color_val < mean_pivot.values.flatten().max() / 2 else 'black'
+                        plt.text(y, x, val, ha="center", va="center", **kws)
+            
+            # Use standard heatmap with std_dev values for color but without annotations
+            ax = sns.heatmap(
+                mean_pivot,
+                cmap=cmap,
+                annot=False,
+                mask=mask,
+                cbar=True,
+                cbar_kws={'label': 'Media de la precisión de captura'},
+                linewidths=1,
+                linecolor='white',
+            )
+            
+            # Add custom annotations with both mean and std_dev in multiline format
+            annotate_heatmap(combined_pivot, mean_pivot, fontsize=8)
+            
+            plt.xticks(rotation=45, ha='right')
+            plt.title(f'Precisión de captura (media ± desv. estándar) para {pokemon_name}\n {pokeball.capitalize()} - Niveles: {first_level}-{last_level}', fontsize=16)
+            plt.xlabel('HP %', fontsize=14)
+            plt.ylabel('Estado', fontsize=14)
+            plt.tight_layout()
+            
+            filename = f"{output_dir}/{pokemon_name.lower()}_{pokeball}_niveles_{first_level}-{last_level}_heatmap.png"
+            plt.savefig(filename, dpi=300, bbox_inches='tight')
+            plt.close()
+        
+        # Return the DataFrame with the calculated values to use for efficiency calculations
+        return std_dev_df
+    
+    data_df1 = create_std_dev_heatmap(df1, pokemon1, output_dir, 19, "YlGnBu")
+    data_df2 = create_std_dev_heatmap(df2, pokemon2, output_dir, 19, "YlOrBr")
+    return data_df1, data_df2
+
+def create_efficiency_heatmaps_from_std_dev(std_dev_data1, std_dev_data2, pokemon1, pokemon2, output_dir, first_level=1, last_level=100):
+    def create_efficiency_heatmap_from_means(std_dev_data, pokemon_name, output_dir, num_hp_groups=19):
+        if std_dev_data is None or std_dev_data.empty:
+            print(f"No data available for {pokemon_name}")
+            return
+            
+        os.makedirs(output_dir, exist_ok=True)
+
+        pokeball_prices = {
+            "pokeball": 200,
+            "ultraball": 1200,
+            "fastball": 500,
+            "heavyball": 500
+        }
+
+        pokeball_colors = {
+            "pokeball": "red",
+            "ultraball": "orange",
+            "fastball": "green",
+            "heavyball": "blue"
+        }
+
+        status_names = ["sleep", "paralysis", "poison", "freeze", "burn", "none"]
+        
+        std_dev_data['Efficiency'] = std_dev_data.apply(
+            lambda row: row['Mean'] / pokeball_prices[row['Pokeball']], axis=1
+        )
+        
+        hp_group_labels = sorted(set(std_dev_data['HP_Group']), 
+                            key=lambda x: float(x.split('-')[0]) if '-' in x else float(x))
+        
+        best_pokeball_data = []
+
+        for status in status_names:
+            for hp_group in hp_group_labels:
+                combo_df = std_dev_data[(std_dev_data['HP_Group'] == hp_group) & 
+                                      (std_dev_data['Status'] == status)]
+
+                if combo_df.empty:
+                    continue
+
+                best_efficiency_by_ball = {}
+
+                for pokeball in pokeball_prices.keys():
+                    ball_df = combo_df[combo_df['Pokeball'] == pokeball]
+                    if not ball_df.empty:
+                        # Use the mean capture rate from the std_dev analysis
+                        avg_capture_rate = ball_df['Mean'].values[0]
+                        efficiency = avg_capture_rate / pokeball_prices[pokeball]
+                        best_efficiency_by_ball[pokeball] = {
+                            'efficiency': efficiency,
+                            'capture_rate': avg_capture_rate
+                        }
+
+                if best_efficiency_by_ball:
+                    # Find the ball with the highest efficiency
+                    best_ball = max(best_efficiency_by_ball.items(), 
+                                  key=lambda x: x[1]['efficiency'])
+
+                    best_pokeball_data.append({
+                        'Status': status,
+                        'HP_Group': hp_group,
+                        'BestPokeball': best_ball[0],
+                        'Efficiency': best_ball[1]['efficiency'],
+                        'CaptureRate': best_ball[1]['capture_rate']
+                    })
+
+        best_df = pd.DataFrame(best_pokeball_data)
+
+        pokeball_pivot = best_df.pivot_table(
+            index='Status',
+            columns='HP_Group',
+            values='BestPokeball',
+            aggfunc=lambda x: x.iloc[0] if len(x) > 0 else None
+        )
+
+        efficiency_pivot = best_df.pivot_table(
+            index='Status',
+            columns='HP_Group',
+            values='Efficiency',
+            aggfunc='first'
+        )
+
+        pokeball_pivot = pokeball_pivot.reindex(status_names)
+        efficiency_pivot = efficiency_pivot.reindex(status_names)
+
+        pokeball_pivot = pokeball_pivot.reindex(columns=hp_group_labels)
+        efficiency_pivot = efficiency_pivot.reindex(columns=hp_group_labels)
+
+        fig, ax = plt.subplots(figsize=(14, 8))
+
+        max_efficiency = efficiency_pivot.max().max()
+
+        # Draw each cell manually
+        for i in range(len(pokeball_pivot.index)):
+            for j in range(len(pokeball_pivot.columns)):
+                if not pd.isna(pokeball_pivot.iloc[i, j]):
+                    ball_type = pokeball_pivot.iloc[i, j]
+                    base_color = mcolors.to_rgb(pokeball_colors[ball_type])
+
+                    efficiency = efficiency_pivot.iloc[i, j]
+                    intensity = min(1.0, efficiency / (max_efficiency * 0.7))
+
+                    white = mcolors.to_rgb('white')
+                    color = tuple(base * intensity + white[i] * (1 - intensity) for i, base in enumerate(base_color))
+
+                    rect = plt.Rectangle((j, i), 1, 1, facecolor=color, edgecolor='white', linewidth=1)
+                    ax.add_patch(rect)
+
+                    efficiency_value = efficiency_pivot.iloc[i, j] * 100
+                    ax.text(j + 0.5, i + 0.5, f"{efficiency_value:.3f}", 
+                           ha="center", va="center", fontweight='bold')
+
+        # Set limits and labels
+        ax.set_xlim(0, len(pokeball_pivot.columns))
+        ax.set_ylim(0, len(pokeball_pivot.index))
+
+        ax.set_xticks(np.arange(len(pokeball_pivot.columns)) + 0.5)
+        ax.set_yticks(np.arange(len(pokeball_pivot.index)) + 0.5)
+
+        ax.set_xticklabels(pokeball_pivot.columns)
+        ax.set_yticklabels(pokeball_pivot.index)
+
+        plt.xticks(rotation=45, ha='right')
+
+        plt.title(f'Pokebola más eficiente para capturar a {pokemon_name}\n(Basado en media de niveles {first_level}-{last_level})', fontsize=16)
+        plt.xlabel('HP %', fontsize=14)
+        plt.ylabel('Estado', fontsize=14)
+
+        legend_elements = []
+        for pokeball, color in pokeball_colors.items():
+            legend_elements.append(Patch(facecolor=color, edgecolor='k', 
+                                  label=f"{pokeball.capitalize()} (₽{pokeball_prices[pokeball]})"))
+
+        plt.legend(handles=legend_elements, bbox_to_anchor=(1.05, 1), loc='upper left', 
+                  title="Tipos de pokeball")
+
+        plt.tight_layout()
+
+        filename = f"{output_dir}/mejor_pokebola_para_{pokemon_name.lower()}_niveles_{first_level}-{last_level}_heatmap.png"
+        plt.savefig(filename, dpi=300, bbox_inches='tight')
+        plt.close()
+
+    create_efficiency_heatmap_from_means(std_dev_data1, pokemon1, output_dir, num_hp_groups=19)
+    create_efficiency_heatmap_from_means(std_dev_data2, pokemon2, output_dir, num_hp_groups=19)
 
 # First run ./utils/all_combination_of_properties_generator.py
 def main():
@@ -474,6 +738,10 @@ def main():
         create_efficiency_heatmaps(df1,df2, first_pokemon, second_pokemon, output_dir)
 
         create_std_dev_heatmaps(df1, df2, first_pokemon, second_pokemon, output_dir)
+        std_dev_data1_low, std_dev_data2_low = create_mean_std_dev_heatmaps(df1, df2, first_pokemon, second_pokemon, output_dir, 1, 50)
+        std_dev_data1_high, std_dev_data2_high = create_mean_std_dev_heatmaps(df1, df2, first_pokemon, second_pokemon, output_dir, 51, 100)
+        create_efficiency_heatmaps_from_std_dev(std_dev_data1_low, std_dev_data2_low, first_pokemon, second_pokemon, output_dir, 1, 50)
+        create_efficiency_heatmaps_from_std_dev(std_dev_data1_high, std_dev_data2_high, first_pokemon, second_pokemon, output_dir, 51, 100)
     
     except Exception as e:
         import traceback
