@@ -1,0 +1,6 @@
+{
+    "pokemon": "mewtwo",
+    "status":["SLEEP", "FREEZE"],
+    "hp_min": 0.01,
+    "hp_max": 0.06
+}
