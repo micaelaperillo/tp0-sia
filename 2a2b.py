@@ -55,6 +55,7 @@ def analyze_health_and_capture(factory, pokeballs, pokemon_name):
     plt.grid(True)
     plt.legend()
     plt.savefig(f"./graphs/health_capture_{pokemon_name}.png")
+    print("Graph saved as health_capture_{pokemon_name}.png")
 
 # 2b)
 def analyze_hp_and_capture(factory, pokeballs, pokemon_name):
@@ -95,6 +96,7 @@ def analyze_hp_and_capture(factory, pokeballs, pokemon_name):
     plt.grid(True)
     plt.legend()
     plt.savefig(f"./graphs/hp_capture_{pokemon_name}.png")
+    print("Graph saved as hp_capture_{pokemon_name}.png")
 
 def main():
     with open('pokemon.json', "r") as c:
