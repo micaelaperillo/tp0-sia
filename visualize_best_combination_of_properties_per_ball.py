@@ -195,11 +195,9 @@ def create_efficiency_heatmaps(df1, df2, pokemon1, pokemon2, output_dir):
         hp_groups = group_hp_by_capture_rate(filtered_df, num_hp_groups)
         filtered_df['HP_Group'] = filtered_df['HP'].map(hp_groups)
 
-        # Get unique HP group labels in correct order
         hp_group_labels = sorted(set(hp_groups.values()), 
                                 key=lambda x: float(x.split('-')[0]) if '-' in x else float(x))
 
-        # Create a DataFrame to store the best pokeball and its efficiency for each HP-Status combination
         best_pokeball_data = []
 
         for status in status_names:
@@ -251,11 +249,9 @@ def create_efficiency_heatmaps(df1, df2, pokemon1, pokemon2, output_dir):
             aggfunc='first'
         )
 
-        # Reorder the index to match the status_names order
         pokeball_pivot = pokeball_pivot.reindex(status_names)
         efficiency_pivot = efficiency_pivot.reindex(status_names)
 
-        # Make sure columns are in correct order (by HP value)
         pokeball_pivot = pokeball_pivot.reindex(columns=hp_group_labels)
         efficiency_pivot = efficiency_pivot.reindex(columns=hp_group_labels)
 
@@ -608,7 +604,6 @@ def create_efficiency_heatmaps_from_std_dev(std_dev_data1, std_dev_data2, pokemo
                 for pokeball in pokeball_prices.keys():
                     ball_df = combo_df[combo_df['Pokeball'] == pokeball]
                     if not ball_df.empty:
-                        # Use the mean capture rate from the std_dev analysis
                         avg_capture_rate = ball_df['Mean'].values[0]
                         efficiency = avg_capture_rate / pokeball_prices[pokeball]
                         best_efficiency_by_ball[pokeball] = {
@@ -675,7 +670,6 @@ def create_efficiency_heatmaps_from_std_dev(std_dev_data1, std_dev_data2, pokemo
                     ax.text(j + 0.5, i + 0.5, f"{efficiency_value:.3f}", 
                            ha="center", va="center", fontweight='bold')
 
-        # Set limits and labels
         ax.set_xlim(0, len(pokeball_pivot.columns))
         ax.set_ylim(0, len(pokeball_pivot.index))
 
@@ -708,11 +702,11 @@ def create_efficiency_heatmaps_from_std_dev(std_dev_data1, std_dev_data2, pokemo
     create_efficiency_heatmap_from_means(std_dev_data1, pokemon1, output_dir, num_hp_groups=19)
     create_efficiency_heatmap_from_means(std_dev_data2, pokemon2, output_dir, num_hp_groups=19)
 
-# First run ./utils/all_combination_of_properties_generator.py
+# First run ./utils/all_combination_of_properties_generator.py with the same pokemons selected
 def main():
     if len(sys.argv) != 3:
         print(f"Usage: {sys.argv[0]} <first_pokemon> <second_pokemon>")
-        print("Example: python3 visualize.py ")
+        print("Example: python3 visualize_best_combination_of_properties_per_ball.py snorlax caterpie")
         sys.exit(1)
     
     first_pokemon = sys.argv[1]
@@ -727,17 +721,23 @@ def main():
         df2 = parse_pokemon_file(file_path2)
 
         # Create output directory
-        output_dir = "capture_analysis"
+        output_dir = "combination_of_properties_graphs"
         os.makedirs(output_dir, exist_ok=True)
 
         # Create plots
+        # 2d
+        # in all functions the fixed level is already set
         create_capture_rate_heatmaps(df1,df2,first_pokemon, second_pokemon, output_dir)
 
         create_bar_plot_for_pokemon_prices(output_dir)
         
         create_efficiency_heatmaps(df1,df2, first_pokemon, second_pokemon, output_dir)
 
+        # 2e
+        # fixed for levels 1-100
         create_std_dev_heatmaps(df1, df2, first_pokemon, second_pokemon, output_dir)
+
+        # for the following functions if limits are not passed, the default range is 1-100
         std_dev_data1_low, std_dev_data2_low = create_mean_std_dev_heatmaps(df1, df2, first_pokemon, second_pokemon, output_dir, 1, 50)
         std_dev_data1_high, std_dev_data2_high = create_mean_std_dev_heatmaps(df1, df2, first_pokemon, second_pokemon, output_dir, 51, 100)
         create_efficiency_heatmaps_from_std_dev(std_dev_data1_low, std_dev_data2_low, first_pokemon, second_pokemon, output_dir, 1, 50)

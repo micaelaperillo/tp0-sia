@@ -13,7 +13,7 @@ if __name__ == "__main__":
      # Check if we have the correct number of arguments
     if len(sys.argv) != 3:
         print(f"Usage: {sys.argv[0]} <pokemon> <second_pokemon>")
-        print("Example: python3 run_pokemon_script.py snorlax 50")
+        print("Example: python3 run_pokemon_script.py snorlax caterpie")
         sys.exit(1)
     
     first_pokemon = sys.argv[1]
@@ -24,19 +24,13 @@ if __name__ == "__main__":
     status_types = [StatusEffect.NONE, StatusEffect.BURN, StatusEffect.FREEZE, StatusEffect.POISON, StatusEffect.PARALYSIS, StatusEffect.SLEEP]
     status_names = {StatusEffect.NONE: "None", StatusEffect.BURN: "Burn", StatusEffect.FREEZE: "Freeze", StatusEffect.POISON: "Poison", StatusEffect.PARALYSIS: "Paralysis", StatusEffect.SLEEP: "Sleep"}
     
-    # now we have all the files necessary to start testing their capture
     factory = PokemonFactory("pokemon.json")
 
-    # Testing on 2 pokemons for no particular reason
-
-    # We test the first pokemon under different conditions 
-
-    # First pokemon under different conditions (level, status, hp, pokeball)
     # the output of the test is a file with the following format:
     # Pokemon: string with the name of the pokemon
     # Level: integer value between 1 and 100
     # Status: string with one of the following states: ["poison", "burn", "paralysis", "sleep", "freeze", "none"]
-    # HP : integer value between 1 and 100
+    # HP: integer value between 1 and 100
 
     for pokemon in [first_pokemon, second_pokemon]:
         with open(f'{pokemon}_conditions_combination.txt', 'w') as file:
